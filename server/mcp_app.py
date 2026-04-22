@@ -9,10 +9,7 @@ from server.tools import list_voice_styles_tool, speak_with_style_tool
 mcp = FastMCP("Claude ElevenLabs Voice Studio")
 
 
-@mcp.tool(
-    name="list_voice_styles",
-    description="List the available friendly voice styles for ElevenLabs speech generation.",
-)
+@mcp.tool(name="list_voice_styles",description="List the available friendly voice styles for ElevenLabs speech generation.",)
 def list_voice_styles():
     return list_voice_styles_tool()
 
@@ -30,12 +27,7 @@ Generate speech from text using one of these styles:
 Save the audio locally and auto-open it.
 """,
 )
-async def speak_with_style(
-    text: str,
-    style: str,
-    file_name: str | None = None,
-    auto_open: bool = True,
-):
+async def speak_with_style(text: str,style: str,file_name: str | None = None,auto_open: bool = True,):
     return await speak_with_style_tool(
         {
             "text": text,

@@ -17,9 +17,7 @@ load_dotenv(PROJECT_ROOT / ".env")
 from server.presets import VOICE_PRESETS
 
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
-AUDIO_OUTPUT_DIR = Path(
-    os.getenv("AUDIO_OUTPUT_DIR", str(PROJECT_ROOT / "outputs" / "audio"))
-).resolve()
+AUDIO_OUTPUT_DIR = Path(os.getenv("AUDIO_OUTPUT_DIR", str(PROJECT_ROOT / "outputs" / "audio"))).resolve()
 AUTO_OPEN_AUDIO = os.getenv("AUTO_OPEN_AUDIO", "true").lower() == "true"
 TTS_URL_TEMPLATE = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
 
@@ -75,12 +73,7 @@ async def edge_fallback_tts(text: str, output_path: Path):
     await communicate.save(str(output_path))
 
 
-async def speak_with_style(
-    text: str,
-    style: str,
-    file_name: str | None = None,
-    auto_open: bool = True,
-) -> dict:
+async def speak_with_style(text: str,style: str,file_name: str | None = None,auto_open: bool = True,) -> dict:
     if not ELEVENLABS_API_KEY:
         raise RuntimeError("ELEVENLABS_API_KEY is missing.")
 
