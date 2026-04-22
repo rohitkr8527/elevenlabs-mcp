@@ -1,5 +1,6 @@
 import streamlit as st
 from pathlib import Path
+import asyncio
 
 from mcp_client import MCPClient
 from llm_service import generate_narration_text
@@ -16,7 +17,7 @@ def get_client():
 
 client = get_client()
 
-st.title("LLM + ElevenLabs Voice Studio")
+st.title("LLM + ElevenLabs Voice ")
 
 if st.button("Load Voice Styles"):
     try:
@@ -32,33 +33,35 @@ styles = st.session_state.get(
 )
 
 prompt = st.text_area(
-    "What should the LLM generate?",
-    "Narrate the story of the thirsty crow in short.",
+    "Enter your prompt",
+    "Explain Retreival Augmented Generation in Short"
 )
 
-style = st.selectbox("Choose voice style", styles, index=3)
-file_name = st.text_input("File name (optional)", "story_audio")
+style = st.selectbox("Choose style", styles, index=3)
+file_name = st.text_input("File name (optional)", "generated_audio")
 
 if st.button("Generate Text + Audio"):
     try:
         with st.spinner("Generating text with Groq..."):
-            generated_text = generate_narration_text(prompt)
+            llm_output = generate_narration_text(prompt)
 
         st.subheader("Generated Text")
-        st.write(generated_text)
+        st.write(llm_output)
 
-        with st.spinner("Generating audio with MCP server..."):
+        with st.spinner("Generating audio..."):
             result = client.call_tool(
                 "speak_with_style",
                 {
-                    "text": generated_text,
+                    "text": llm_output,
                     "style": style,
                     "file_name": file_name or None,
                     "auto_open": False,
                 },
             )
 
-        st.success(result.get("message", "Audio generated"))
+        st.subheader("Audio Result")
+        st.success(result.get("message", "Audio generated successfully"))
+
         file_path = result.get("file_path", "")
         st.write("Saved at:", file_path)
 
@@ -67,7 +70,7 @@ if st.button("Generate Text + Audio"):
             with open(audio_file, "rb") as f:
                 st.audio(f.read(), format="audio/mp3")
         else:
-            st.warning("Audio file not found")
+            st.warning("Audio file not found.")
 
     except Exception as e:
         st.error(str(e))

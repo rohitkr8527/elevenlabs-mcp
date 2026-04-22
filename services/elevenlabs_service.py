@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import edge_tts
 import platform
 import subprocess
 from datetime import datetime
@@ -68,6 +69,12 @@ def list_voice_styles() -> dict:
     return {"styles": styles}
 
 
+
+async def edge_fallback_tts(text: str, output_path: Path):
+    communicate = edge_tts.Communicate(text=text, voice="en-US-AriaNeural")
+    await communicate.save(str(output_path))
+
+
 async def speak_with_style(
     text: str,
     style: str,
@@ -75,18 +82,10 @@ async def speak_with_style(
     auto_open: bool = True,
 ) -> dict:
     if not ELEVENLABS_API_KEY:
-        raise RuntimeError("ELEVENLABS_API_KEY is missing. Add it to your .env file.")
+        raise RuntimeError("ELEVENLABS_API_KEY is missing.")
 
     normalized_style = style.strip().lower()
-    if normalized_style not in VOICE_PRESETS:
-        available = ", ".join(VOICE_PRESETS.keys())
-        raise RuntimeError(f"Unknown style '{style}'. Available styles: {available}")
-
-    preset = VOICE_PRESETS[normalized_style]
-    voice_id = preset["voice_id"]
-
-    if not voice_id:
-        raise RuntimeError(f"Voice ID for style '{normalized_style}' is missing in your .env file.")
+    preset = VOICE_PRESETS.get(normalized_style)
 
     ensure_output_dir()
     output_path = build_output_path(file_name, normalized_style)
@@ -104,14 +103,26 @@ async def speak_with_style(
         "voice_settings": preset["voice_settings"],
     }
 
-    url = TTS_URL_TEMPLATE.format(voice_id=voice_id)
+    url = TTS_URL_TEMPLATE.format(voice_id=preset["voice_id"])
 
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        response = await client.post(url, headers=headers, json=payload)
-        response.raise_for_status()
-        audio_bytes = response.content
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
 
-    await anyio.Path(output_path).write_bytes(audio_bytes)
+            if response.status_code == 402:
+                raise RuntimeError("ElevenLabs quota/voice restriction")
+
+            response.raise_for_status()
+            audio_bytes = response.content
+
+        await anyio.Path(output_path).write_bytes(audio_bytes)
+
+        engine = "elevenlabs"
+
+    except Exception:
+      
+        await edge_fallback_tts(text, output_path)
+        engine = "edge-tts"
 
     opened = False
     if auto_open and AUTO_OPEN_AUDIO:
@@ -119,12 +130,7 @@ async def speak_with_style(
 
     return {
         "success": True,
-        "message": "I generated the audio successfully and saved it locally. Opening it now."
-        if opened
-        else "I generated the audio successfully and saved it locally.",
+        "message": f"Audio generated using {engine}",
         "file_path": str(output_path),
-        "opened_automatically": opened,
-        "style": normalized_style,
-        "voice_label": preset["label"],
-        "model_id": preset["model_id"],
+        "engine": engine,
     }

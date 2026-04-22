@@ -28,10 +28,9 @@ def generate_narration_text(user_prompt: str) -> str:
     messages = [
         SystemMessage(
             content=(
-                "You are a helpful storytelling and narration assistant. "
+                "You are a helpful narration assistant. "
                 "Generate short, clear, natural text suitable for text-to-speech narration. "
-                "Keep it concise, polished, and easy to listen to. "
-                "Do not add headings or bullet points unless explicitly asked."
+                "Keep it concise and smooth to listen to."
             )
         ),
         HumanMessage(content=user_prompt),
